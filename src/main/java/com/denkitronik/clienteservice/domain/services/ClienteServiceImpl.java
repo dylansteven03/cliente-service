@@ -2,9 +2,11 @@ package com.denkitronik.clienteservice.domain.services;
 
 import com.denkitronik.clienteservice.domain.entities.Cliente;
 import com.denkitronik.clienteservice.domain.entities.Region;
-import com.denkitronik.clienteservice.domain.exception.ClienteNotFoundException;
 import com.denkitronik.clienteservice.domain.repositories.IClienteDao;
+import com.denkitronik.clienteservice.domain.exception.ClienteNotFoundException;
+import com.denkitronik.clienteservice.domain.exception.ClienteServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,13 +23,19 @@ public class ClienteServiceImpl implements IClienteService {
     @Override
     @Transactional(readOnly = true)
     public List<Cliente> findAll() {
-        return clienteDao.findAll();
+        return (List<Cliente>) clienteDao.findAll();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Cliente> findAll(Pageable pageable) {
         return clienteDao.findAll(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Region> findAllRegiones() {
+        return clienteDao.findAllRegiones();
     }
 
     @Override
@@ -40,20 +48,11 @@ public class ClienteServiceImpl implements IClienteService {
     @Override
     @Transactional
     public Cliente save(Cliente cliente) {
-        return clienteDao.save(cliente);
-    }
-
-    @Override
-    @Transactional
-    public Cliente update(Long id, Cliente cliente) {
-        Cliente actual = clienteDao.findById(id)
-                .orElseThrow(() -> new ClienteNotFoundException(id));
-        actual.setNombre(cliente.getNombre());
-        actual.setApellido(cliente.getApellido());
-        actual.setEmail(cliente.getEmail());
-        actual.setFoto(cliente.getFoto());
-        actual.setRegion(cliente.getRegion());
-        return clienteDao.save(actual);
+        try {
+            return clienteDao.save(cliente);
+        } catch (DataIntegrityViolationException e) {
+            throw new ClienteServiceException("Error al guardar el cliente: datos duplicados o inválidos", e);
+        }
     }
 
     @Override
@@ -66,9 +65,13 @@ public class ClienteServiceImpl implements IClienteService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<Region> findAllRegiones() {
-
-        return clienteDao.findAllRegiones();
+    @Transactional
+    public Cliente update(Long id, Cliente cliente) {
+        Cliente clienteExistente = findById(id);
+        clienteExistente.setNombre(cliente.getNombre());
+        clienteExistente.setApellido(cliente.getApellido());
+        clienteExistente.setEmail(cliente.getEmail());
+        clienteExistente.setRegion(cliente.getRegion());
+        return save(clienteExistente);
     }
 }

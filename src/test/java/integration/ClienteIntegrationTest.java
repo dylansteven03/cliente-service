@@ -1,5 +1,7 @@
 package com.denkitronik.clienteservice.integration;
 
+import java.util.Arrays;
+import java.util.List;
 import com.denkitronik.clienteservice.ClienteServiceApplication;
 import com.denkitronik.clienteservice.domain.entities.Cliente;
 import com.denkitronik.clienteservice.domain.entities.Region;
@@ -135,6 +137,42 @@ class ClienteIntegrationTest {
                 restTemplate.getForEntity(BASE + "/clientes/" + idCreado, String.class);
 
         assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @Order(6)
+    @DisplayName("POST /clientes con email inválido → 400 Bad Request")
+    void crearCliente_emailInvalido_debeRetornar400() {
+        Region region = new Region();
+        region.setId(regionId);
+
+        Cliente invalido = new Cliente();
+        invalido.setNombre("Alan");
+        invalido.setApellido("Turing");
+        invalido.setEmail("esto-no-es-un-email");
+        invalido.setRegion(region);
+
+        ResponseEntity<String> respuesta =
+                restTemplate.postForEntity(BASE + "/clientes", invalido, String.class);
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(respuesta.getBody()).contains("email");
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("GET /clientes/regiones → 200 incluye la región sembrada")
+    void listarRegiones_debeRetornar200ConRegionSembrada() {
+        ResponseEntity<Region[]> respuesta =
+                restTemplate.getForEntity(BASE + "/clientes/regiones", Region[].class);
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(respuesta.getBody()).isNotNull();
+
+        List<String> nombres = Arrays.stream(respuesta.getBody())
+                .map(Region::getNombre)
+                .toList();
+        assertThat(nombres).contains("América del Sur");
     }
 
     private HttpHeaders headersJson() {

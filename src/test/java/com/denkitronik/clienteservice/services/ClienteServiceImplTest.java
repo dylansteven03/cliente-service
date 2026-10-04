@@ -1,5 +1,10 @@
 package com.denkitronik.clienteservice.domain.services;
 
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import com.denkitronik.clienteservice.domain.exception.ClienteNotFoundException;
 import com.denkitronik.clienteservice.domain.exception.ClienteServiceException;
 import com.denkitronik.clienteservice.domain.entities.Cliente;
@@ -132,5 +137,64 @@ class ClienteServiceImplTest {
         assertThatThrownBy(() -> clienteService.update(999L, cliente))
                 .isInstanceOf(ClienteNotFoundException.class)
                 .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("findAll — devuelve la lista completa de clientes")
+    void findAll_debeRetornarListaDeClientes() {
+        when(clienteDao.findAll()).thenReturn(List.of(cliente));
+
+        List<Cliente> resultado = clienteService.findAll();
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).getNombre()).isEqualTo("Linus");
+        verify(clienteDao, times(1)).findAll();
+    }
+
+    @Test
+    @DisplayName("findAll paginado — devuelve la página solicitada")
+    void findAllPaginado_debeRetornarPagina() {
+        Pageable pageable = PageRequest.of(0, 4);
+        Page<Cliente> pagina = new PageImpl<>(List.of(cliente), pageable, 1);
+        when(clienteDao.findAll(pageable)).thenReturn(pagina);
+
+        Page<Cliente> resultado = clienteService.findAll(pageable);
+
+        assertThat(resultado.getContent()).hasSize(1);
+        assertThat(resultado.getTotalElements()).isEqualTo(1L);
+        verify(clienteDao, times(1)).findAll(pageable);
+    }
+
+    @Test
+    @DisplayName("save — cliente válido → lo guarda y lo retorna")
+    void save_clienteValido_debeGuardarYRetornar() {
+        when(clienteDao.save(cliente)).thenReturn(cliente);
+
+        Cliente resultado = clienteService.save(cliente);
+
+        assertThat(resultado.getEmail()).isEqualTo("linus@kernel.org");
+        verify(clienteDao, times(1)).save(cliente);
+    }
+
+    @Test
+    @DisplayName("delete — ID existente → llama a deleteById una vez")
+    void delete_idExistente_debeEliminar() {
+        when(clienteDao.existsById(1L)).thenReturn(true);
+
+        assertThatCode(() -> clienteService.delete(1L)).doesNotThrowAnyException();
+
+        verify(clienteDao, times(1)).deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("findAllRegiones — devuelve las regiones del DAO")
+    void findAllRegiones_debeRetornarListaDeRegiones() {
+        when(clienteDao.findAllRegiones()).thenReturn(List.of(region));
+
+        List<Region> resultado = clienteService.findAllRegiones();
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).getNombre()).isEqualTo("Sudamérica");
+        verify(clienteDao, times(1)).findAllRegiones();
     }
 }

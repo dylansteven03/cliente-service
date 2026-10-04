@@ -1,5 +1,6 @@
 package com.denkitronik.clienteservice.domain.repositories;
 
+import java.util.Optional;
 import com.denkitronik.clienteservice.domain.entities.Cliente;
 import com.denkitronik.clienteservice.domain.entities.Region;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,5 +60,44 @@ class IClienteDaoTest {
         em.flush();
 
         assertThat(em.find(Cliente.class, id)).isNull();
+    }
+
+    @Test
+    @DisplayName("save — cliente nuevo → se guarda y recibe un ID")
+    void save_clienteNuevo_debeAsignarId() {
+        Cliente nuevo = new Cliente();
+        nuevo.setNombre("Alan");
+        nuevo.setApellido("Turing");
+        nuevo.setEmail("alan@bletchley.uk");
+        nuevo.setRegion(region);
+
+        Cliente guardado = clienteDao.save(nuevo);
+
+        assertThat(guardado.getId()).isNotNull();
+        assertThat(clienteDao.count()).isEqualTo(2L);
+    }
+
+    @Test
+    @DisplayName("findById — ID existente → devuelve el cliente")
+    void findById_idExistente_debeRetornarCliente() {
+        Optional<Cliente> resultado = clienteDao.findById(cliente.getId());
+
+        assertThat(resultado).isPresent();
+        assertThat(resultado.get().getEmail()).isEqualTo("grace@navy.mil");
+    }
+
+    @Test
+    @DisplayName("findById — ID inexistente → devuelve Optional vacío")
+    void findById_idInexistente_debeRetornarVacio() {
+        Optional<Cliente> resultado = clienteDao.findById(9999L);
+
+        assertThat(resultado).isEmpty();
+    }
+
+    @Test
+    @DisplayName("existsById — true si existe, false si no")
+    void existsById_debeDistinguirExistenteDeInexistente() {
+        assertThat(clienteDao.existsById(cliente.getId())).isTrue();
+        assertThat(clienteDao.existsById(9999L)).isFalse();
     }
 }

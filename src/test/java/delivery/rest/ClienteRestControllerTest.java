@@ -1,5 +1,6 @@
 package com.denkitronik.clienteservice.delivery.rest;
 
+import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.denkitronik.clienteservice.ClienteServiceApplication;
 import com.denkitronik.clienteservice.domain.entities.Cliente;
@@ -130,5 +131,49 @@ class ClienteRestControllerTest {
 
         mockMvc.perform(delete(BASE + "/clientes/1"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("GET /clientes → 200 con la lista de clientes")
+    void listarClientes_debeRetornar200ConLista() throws Exception {
+        when(clienteService.findAll()).thenReturn(List.of(cliente));
+
+        mockMvc.perform(get(BASE + "/clientes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].nombre").value("Ada"));
+    }
+
+    @Test
+    @DisplayName("POST /clientes válido → 201 Created")
+    void crearCliente_valido_debeRetornar201() throws Exception {
+        when(clienteService.save(any(Cliente.class))).thenReturn(cliente);
+
+        mockMvc.perform(post(BASE + "/clientes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(cliente)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.email").value("ada@babbage.uk"));
+    }
+
+    @Test
+    @DisplayName("DELETE /clientes/999 → 404 cuando el cliente no existe")
+    void eliminarCliente_idInexistente_debeRetornar404() throws Exception {
+        doThrow(new ClienteNotFoundException(999L))
+                .when(clienteService).delete(999L);
+
+        mockMvc.perform(delete(BASE + "/clientes/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("GET /clientes/regiones → 200 con la lista de regiones")
+    void listarRegiones_debeRetornar200ConRegiones() throws Exception {
+        when(clienteService.findAllRegiones()).thenReturn(List.of(cliente.getRegion()));
+
+        mockMvc.perform(get(BASE + "/clientes/regiones"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Europa"));
     }
 }
